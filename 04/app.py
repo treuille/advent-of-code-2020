@@ -39,6 +39,9 @@ ALL_FIELDS = REQUIRED_FIELDS.union(OPTIONAL_FIELDS)
 # Field regular expressions
 FOUR_DIGITS = re.compile(r"\d{4}$")
 HEIGHT_FORMAT = re.compile(r"(?P<height>\d+)(?P<units>cm|in)$")
+HAIR_COLOR = re.compile(r"(#([0-9]|[a-f]){6})$")
+EYE_COLOR = re.compile(r"(amb|blu|brn|gry|grn|hzl|oth)$")
+PID_FORMAT = re.compile(r"([0-9]{9})$")
 
 # Check all passports
 valid_passports = 0
@@ -100,24 +103,23 @@ for passport in problem_input.split('\n\n'):
                         valid = False
                     if units == 'in' and not (59 <= height <= 76):
                         valid = False
-            # elif field == "hcl":
-            # elif field == "hcl":
-            #     # (Hair Color) - a # followed by exactly six characters 0-9 or a-f.
-            #     raise NotImplementedError
-            #     continue
-            # elif field == "ecl":
-            #     # (Eye Color) - exactly one of: amb blu brn gry grn hzl oth.
-            #     raise NotImplementedError
-            #     continue
-            # elif field == "pid":
-            #     # (Passport ID) - a nine-digit number, including leading zeroes.
-            #     raise NotImplementedError
-            #     continue
+            elif field == "hcl":
+                # (Hair Color) - a # followed by exactly six characters 0-9 or a-f.
+                if not HAIR_COLOR.match(value):
+                    valid = False
+            elif field == "ecl":
+                # (Eye Color) - exactly one of: amb blu brn gry grn hzl oth.
+                if not EYE_COLOR.match(value):
+                    valid = False
+            elif field == "pid":
+                # (Passport ID) - a nine-digit number, including leading zeroes.
+                if not PID_FORMAT.match(value):
+                    valid = False
             # elif field == "cid":
             #     # (Country ID) - ignored, missing or not.
             #     raise NotImplementedError
             #     continue
-            if field == 'hgt' and show_debug_output:
+            if field == 'pid' and show_debug_output:
                 if valid:
                     st.success(f'Field `{field}` is valid: `"{value}"`')
                 else:
