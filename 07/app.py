@@ -28,9 +28,6 @@ for line_num, line in enumerate(problem_input.split('\n')):
     if containees == "no other bags.":
         containees = []
     else:
-        st.write("containees", containees.split(", "))
-        for containee in containees.split(", "):
-            st.write(containee, BAG_RE.match(containee))
         containees = [cast(Match[str], BAG_RE.match(s)).group("bag_type")
             for s in containees.split(", ")]
     for containee in containees:
@@ -46,16 +43,18 @@ for line_num, line in enumerate(problem_input.split('\n')):
 # Perform a breadth-first search to figure out which bag eventually contain
 # a shiny gold bag
 eventual_containers = contained_by["shiny gold"]
-st.help(set.union)
+# st.help(set.union)
 while True:
     if show_debug_output:
         st.write(eventual_containers)
-    new_eventual_containers = eventual_containers.union(functools.reduce(
-        set.union, (contained_by[bag] for bag in eventual_containers)))
+    new_eventual_containers = eventual_containers.copy()
+    for bag in eventual_containers:
+        new_eventual_containers |= contained_by.get(bag, set())
     if show_debug_output:
         st.write(new_eventual_containers)
         st.write('---')
-    # if len(eventual_containers) == len(new_eventual_containers):
+    if len(eventual_containers) == len(new_eventual_containers):
         break
     eventual_containers = new_eventual_containers
-st.write(len(eventual_containers))
+st.write(f"There are `{len(eventual_containers)}` eventual containers.")
+st.write(list(eventual_containers))
