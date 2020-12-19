@@ -1,6 +1,6 @@
 import streamlit as st
 from streamlit_ace import st_ace
-from typing import Dict, Set, Match, cast
+from typing import Dict, Set, Match, cast, List, Tuple
 import re
 import functools
 
@@ -16,45 +16,61 @@ import functools
 problem_input = st_ace(height=150)
 show_debug_output = st.checkbox("Show debug output")
 
+# Parse the input
+
+BAG_RE = re.compile(r"(?P<num_bags>\d+)\ (?P<bag_type>[a-z]+ [a-z]+) bags?\.?$")
+Bags = Dict[str, int]
+
+contains : Dict[str, Bags] = {}
+for line_num, line in enumerate(problem_input.split('\n')):
+    container_bag_type, containees_str = line.split(" bags contain ")
+    containees : List[Tuple[str, int]] = []
+    if containees_str != "no other bags.":
+        for containee in containees_str.split(", "):
+            match = BAG_RE.match(containee)
+            assert match, f'Regular expression parse error: "{containee}".'
+            containees.append((match.group("bag_type"),
+                int(match.group("num_bags"))))
+    assert container_bag_type not in contains, f'Repeat bag type on {line_num}.'
+    contains[container_bag_type] = dict(containees)
+    if show_debug_output:
+        st.write(f'`{line_num}`: line=`"{line}"`')
+        st.write(f'`{line_num}`: container_bag_type=`"{container_bag_type}"`')
+        st.write(f'`{line_num}`: containees=`{containees}`')
+        st.write(contains)
+        st.write('---')
+
+# Write the output
+
 """
 ## Output
 """
 
-BAG_RE = re.compile(r"\d+\ (?P<bag_type>[a-z]+ [a-z]+) bags?\.?$")
+def sum_bags(bags_1 : Bags, bags_2 : Bags) -> Bags:
+    """Sum the bags in two multisets of bags."""
+    bags_sum = bags_1.copy()
+    for bag_type, num_bags_2 in bags_2.items():
+        num_bags_1 = bags_sum.get(bag_type, 0)
+        bags_sum[bag_type] = num_bags_1 + num_bags_2
+    return bags_sum
 
-contained_by : Dict[str, Set[str]] = {}
-for line_num, line in enumerate(problem_input.split('\n')):
-    container, containees = line.split(" bags contain ")
-    if containees == "no other bags.":
-        containees = []
-    else:
-        containees = [cast(Match[str], BAG_RE.match(s)).group("bag_type")
-            for s in containees.split(", ")]
-    for containee in containees:
-        containers = contained_by.setdefault(containee, set())
-        containers.add(container)
-    if show_debug_output:
-        st.write(f'`{line_num}`: line=`"{line}"`')
-        st.write(f'`{line_num}`: container=`"{container}"`')
-        st.write(f'`{line_num}`: containees=`{containees}`')
-        st.write(repr(contained_by))
-        st.write('---')
+def mult_bags(coef : int, bags : Bags) -> Bags:
+    """Multiply the number of bags in a multiset of bags."""
+    return {bag_type:(coef * num_bags) for bag_type, num_bags in bags.items()}
 
-# Perform a breadth-first search to figure out which bag eventually contain
-# a shiny gold bag
-eventual_containers = contained_by["shiny gold"]
-# st.help(set.union)
+bags_per_level = [{'shiny gold': 1}]
 while True:
-    if show_debug_output:
-        st.write(eventual_containers)
-    new_eventual_containers = eventual_containers.copy()
-    for bag in eventual_containers:
-        new_eventual_containers |= contained_by.get(bag, set())
-    if show_debug_output:
-        st.write(new_eventual_containers)
-        st.write('---')
-    if len(eventual_containers) == len(new_eventual_containers):
+    bags_last_level = bags_per_level[-1]
+    if not bags_last_level:
         break
-    eventual_containers = new_eventual_containers
-st.write(f"There are `{len(eventual_containers)}` eventual containers.")
-st.write(list(eventual_containers))
+    bags_next_level : Bags = {}
+    for bag_type, num_bags in bags_last_level.items():
+        bags_next_level = sum_bags(bags_next_level,
+                mult_bags(num_bags, contains[bag_type]))
+    bags_per_level.append(bags_next_level)
+    if show_debug_output:
+        st.write(bags_per_level)
+all_bags = functools.reduce(sum_bags, bags_per_level[1:])
+total_num_bags = functools.reduce(int.__add__, all_bags.values())        
+"In total there are", total_num_bags, "bags across:", all_bags
+
