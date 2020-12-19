@@ -1,4 +1,5 @@
 import streamlit as st
+from streamlit_ace import st_ace
 
 """
 # Advent of Code 2020 in Streamlit - *PROBLEM*
@@ -9,7 +10,8 @@ import streamlit as st
 """
 
 # Load the input
-problem_input = st_ace()
+problem_input = st_ace(height=150)
+show_debug_output = st.checkbox("Show debug output")
 
 """
 ## Output
