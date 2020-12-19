@@ -19,5 +19,4 @@ show_debug_output = st.checkbox("Show debug output")
 
 for line_num, line in enumerate(problem_input.split('\n')):
     if show_debug_output:
-        st.write(f'`{line_num}`: `"{line}"`')
-
+        st.write(f'`{line_num}`: line=`"{line}"`')
