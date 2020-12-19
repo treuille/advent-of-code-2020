@@ -20,24 +20,30 @@ show_debug_output = st.checkbox("Show debug output")
 
 valid_input_lines = 0
 line_expression = re.compile(
-        r"(?P<low>\d+)\-(?P<hi>\d+) (?P<char>[a-z]): (?P<pw>[a-z]+)$")
+        r"(?P<pos_1>\d+)\-(?P<pos_2>\d+) (?P<char>[a-z]): (?P<pw>[a-z]+)$")
 for line_num, line in enumerate(problem_input.split("\n")):
     match = line_expression.match(line)
     if not match:
         st.warning(f'Line `{line_num}`: Parse error `"{line}"`')
         continue
-    low = int(match.group("low"))
-    hi = int(match.group("hi"))
+    pos_1 = int(match.group("pos_1"))
+    pos_2 = int(match.group("pos_2"))
     char = match.group("char")
     pw = match.group("pw")
-    char_count = len([c for c in pw if c == char])
     if show_debug_output:
         st.write(f'Line `{line_num}`: `"{line}"`')
-        st.write(low, hi, char, pw)
-    if low <= char_count <= hi:
+        st.write(pos_1, pos_2, char, pw)
+        st.write(f"Testing `'{pw[pos_1 - 1]}'` and `'{pw[pos_2 - 1]}'`")
+    char_matches = 0
+    if pw[pos_1 - 1] == char:
+        char_matches += 1
+    if pw[pos_2 - 1] == char:
+        char_matches += 1
+    if char_matches == 1:
         valid_input_lines += 1
         if show_debug_output:
             st.success(f"Line `{line_num}` valid (`{valid_input_lines}`).")
     elif show_debug_output:
+        st.error(f"There were `{char_matches}` matches")
         st.error(f"Line `{line_num}` invalid (`{valid_input_lines}`).")
 st.write(f"In total `{valid_input_lines}` lines are valid.")
