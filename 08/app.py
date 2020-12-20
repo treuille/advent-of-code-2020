@@ -5,7 +5,7 @@ from typing import List, Tuple, Set, Dict, Optional
 import functools
 
 """
-# Advent of Code 2020 in Streamlit - *PROBLEM*
+# Advent of Code 2020 in Streamlit - 08
 """
 
 """
@@ -78,21 +78,18 @@ def get_all_antecedents(antecedents: Antecedents, lines: Set[int]):
         antecedent_lines |= antecedents.get(line, set())
     return antecedent_lines
 
-def fix_instructions(instructions: Instructions) -> None:
-    """Fixes the instrutions so that they don't loop infinitely."""
+def get_antecedents(instructions: Instructions) -> Antecedents:
+    """Get a graph of all the antecedents to each line"""
 
     # Compute the antecedent lines that lead to each line
     antecedents: Antecedents = {}
-    flip_antecedents: Antecedents = {}
     for line_num, (inst, arg) in enumerate(instructions):
         if inst == "nop":
             add_antecedent(antecedents, line_num, line_num + 1)
-            add_antecedent(flip_antecedents, line_num, line_num + arg)
         elif inst == "acc":
             add_antecedent(antecedents, line_num, line_num + 1)
         elif inst == "jmp":
             add_antecedent(antecedents, line_num, line_num + arg)
-            add_antecedent(flip_antecedents, line_num, line_num + 1)
         else:
             raise RuntimeError(f'Unknown instruction: "{inst}"')
         if show_preprocess_output:
@@ -101,67 +98,82 @@ def fix_instructions(instructions: Instructions) -> None:
                 col1, col2 = st.beta_columns(2)
                 col1.write("### Antecedents")
                 col1.write({x:repr(y) for x,y in antecedents.items()})
-                col2.write("### Flip Antecedents")
-                col2.write({x:repr(y) for x,y in flip_antecedents.items()})
                 st.write("---")
+    return antecedents
+
+def get_terminating_lines(antecedents: Antecedents) -> Set[int]:
+    """Returns a set of all lines which will eventually terminate without
+    flipping instructions."""
 
     # Peform a breadth-first search to find all instructions that terminate
     terminating_lines: Set[int] = set()
-    lines_to_process = {len(instructions)}
+    highest_line = max(max(lines) for lines in antecedents.values())
+    lines_to_process = { highest_line + 1 }
     while lines_to_process:
         terminating_lines |= lines_to_process
+        lines_to_process = get_all_antecedents(antecedents, lines_to_process)
         if show_debug_output:
             st.write("### Terminating lines")
             st.write(terminating_lines)
-        if 0 in terminating_lines:
-            st.success(
-                f"This program terminates on lines `{terminating_lines}`.")
-            return
-        antecedent_lines = get_all_antecedents(antecedents, lines_to_process)
-        if not antecedent_lines:
-            # Figure out which instruction to flip. Hopefully only one!
-            flip_antecedent_lines = \
-                get_all_antecedents(flip_antecedents, lines_to_process)
-            st.warning(
-                f"No antecedent lines to `{lines_to_process}`.\n\n"
-                f"Flip antecedents are `{flip_antecedent_lines}`.\n\n"
-                f"Terminating lines are `{terminating_lines}`. "
-            )
-            assert len(flip_antecedent_lines) == 1, \
-                "Too many potential lines to flip here."
-
-            # Actually flip the instruction.
-            line_to_flip = list(flip_antecedent_lines)[0]
-            inst, arg = instructions[line_to_flip]
-            if inst == "nop":
-                instructions[line_to_flip] = ("jmp", arg)
-            elif inst == "jmp":
-                instructions[line_to_flip] = ("nop", arg)
-            else:
-                raise RuntimeError(f'Unknown instruction: "{inst}"')
-            st.success(f"Flipped instruction on line `{line_to_flip}`")
-            return
-            
-        lines_to_process = antecedent_lines
-        if show_debug_output:
             st.write("### Lines to process")
             st.write(lines_to_process)
             st.write("---")
-        if not antecedent_lines:
-            raise RuntimeError("Reached a dead end here")
+    return terminating_lines
+
+def fix_instructions(instructions: Instructions, terminating_lines: Set[int]) \
+        -> None:
+    """Flips a single instruction so that the instructions terminate."""
+    # Start executing from the beginning, seeing where we can flip an
+    # an instruction.
+    line_num = 0
+    executed: Set[int] = set()
+    while line_num not in executed:
+        if line_num == len(instructions):
+            raise RuntimeError("Program terminated while fixing instructions.")
+        executed.add(line_num)
+        inst, arg = instructions[line_num]
+        if show_debug_output:
+            st.write(line_num, inst, arg)
+            st.write(line_num + 1, (line_num + 1) in terminating_lines)
+            st.write(line_num + arg, (line_num + arg) in terminating_lines)
+            st.write("---")
+
+        if inst == "nop":
+            if line_num + arg in terminating_lines:
+                instructions[line_num] = "jmp", arg
+                st.warning(
+                    f"Changed line `{line_num}` to "
+                    f"`{instructions[line_num]}`")
+                return
+            line_num += 1
+        elif inst == "acc":
+            line_num += 1
+        elif inst == "jmp":
+            if line_num + 1 in terminating_lines:
+                instructions[line_num] = "nop", arg
+                st.warning(
+                    f"Changed line `{line_num}` to "
+                    f"`{instructions[line_num]}`")
+                return
+            line_num += arg
+        else:
+            raise RuntimeError(f'Unkown instruction: "{inst}"')
+    raise RuntimeError("Program looped while fixing instructions.")
+ 
 
 # Run the ouput
-"# Fixing the instructions"
-fix_instructions(instructions)
+"## Fixing instructions"
+antecedents = get_antecedents(instructions)
+terminating_lines = get_terminating_lines(antecedents)
+fix_instructions(instructions, terminating_lines)
 
-"# Running on fixed instructions"
-fix_instructions(instructions)
-
-"# Executing the program"
-accumulator = execute(instructions)
-f"""
+"""
 ## Output
+"""
 
+accumulator = execute(instructions)
+
+f"""
 The final value of the accumulator is `{accumulator}`.
 """
 
