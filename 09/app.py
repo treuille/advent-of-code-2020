@@ -7,7 +7,7 @@ from typing import Tuple, Set, cast
 """
 
 # Types
-Point = Tuple[int, int, int]
+Point = Tuple[int, int, int, int]
 Points = Set[Point]
 
 """
@@ -24,31 +24,33 @@ def get_initial_state(problem_input: str) -> Points:
     for y, line in enumerate(problem_input.split('\n')):
         for x, char in enumerate(line):
             if char == "#":
-                state.add((x, y, 0))
+                state.add((x, y, 0, 0))
     return state
 
 def pretty_print_points(points: Points) -> None:
     """Writes the points out to the console as a series of dataframe."""
     # Sort the points by z values
-    xs, ys, zs = cast(Tuple[Set[int], Set[int], Set[int]],
+    xs, ys, zs, ws = cast(Tuple[Set[int], Set[int], Set[int], Set[int]],
             map(set, zip(*points)))
-    for z in range(min(zs), max(zs) + 1):
-        st.write(f"**z = `{z}`**")
-        z_slice = "" 
-        for y in range(min(ys), max(ys) + 1):
-            line = ''.join(['.', '#'][int((x, y, z) in points)]
-                    for x in range(min(xs), max(xs) + 1))
-            z_slice += line + '\n'
-        st.text(z_slice)
+    for w in range(min(ws), max(ws) + 1):
+        for z in range(min(zs), max(zs) + 1):
+            st.write(f"**z = `{z}` w = `{w}`**")
+            z_slice = "" 
+            for y in range(min(ys), max(ys) + 1):
+                line = ''.join(['.', '#'][int((x, y, z) in points)]
+                        for x in range(min(xs), max(xs) + 1))
+                z_slice += line + '\n'
+            st.text(z_slice)
 
 def get_neighbors(point: Point) -> Points:
     """Returns the 26 adjacent points in 3D."""
-    px, py, pz = point
-    return set((x, y, z)
+    px, py, pz, pw = point
+    return set((x, y, z, w)
             for x in range(px - 1, px + 2)
             for y in range(py - 1, py + 2)
             for z in range(pz - 1, pz + 2)
-            if (x != px or y != py or z != pz))
+            for w in range(pw - 1, pw + 2)
+            if (x != px or y != py or z != pz or w != pw))
 
 def get_all_neighbors(points: Points) -> Points:
     """Like get_neighbors() but unions over a set of points."""
@@ -70,8 +72,8 @@ def cycle(state: Points) -> Points:
             if active_neigbors in (2, 3):
                 new_state.add(point)
         else:
-            # If a cube is inactive but exactly 3 of its neighbors are active, the
-            # cube becomes active. Otherwise, the cube remains inactive.
+            # If a cube is inactive but exactly 3 of its neighbors are active,
+            # the cube becomes active. Otherwise, the cube remains inactive.
             if active_neigbors == 3:
                 new_state.add(point)
     return new_state
