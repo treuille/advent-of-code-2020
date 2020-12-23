@@ -21,14 +21,14 @@ show_debug_output = st.checkbox("Show debug output")
 # The starting location
 x, y = 0, 0
 
-# The diretion of travel
-dx, dy = 1, 0
+# The waypoint's relative location
+wx, wy = 10, 1
 
 for line_num, line in enumerate(problem_input.split('\n')):
     if show_debug_output:
         st.write(f'`{line_num}`: line=`"{line}"`')
         st.write(f'`{line_num}`: pos=`"{(x, y)}"`')
-        st.write(f'`{line_num}`: dir=`"{(dx, dy)}"`')
+        st.write(f'`{line_num}`: dir=`"{(wx, wy)}"`')
         st.write("---")
 
     # Action N means to move north by the given value.
@@ -36,28 +36,28 @@ for line_num, line in enumerate(problem_input.split('\n')):
     # Action E means to move east by the given value.
     # Action W means to move west by the given value.
     if line[0] == 'N':
-        y += int(line[1:])
+        wy += int(line[1:])
     elif line[0] == 'S':
-        y -= int(line[1:])
+        wy -= int(line[1:])
     elif line[0] == 'E':
-        x += int(line[1:])
+        wx += int(line[1:])
     elif line[0] == 'W':
-        x -= int(line[1:])
+        wx -= int(line[1:])
 
     # Action L means to turn left the given number of degrees.
     # Action R means to turn right the given number of degrees.
     elif line in ('L90', 'R270'):
-        dx, dy = -dy, dx
+        wx, wy = -wy, wx
     elif line in ('R90', 'L270'):
-        dx, dy = dy, -dx
+        wx, wy = wy, -wx
     elif line in ('R180', 'L180'):
-        dx, dy = -dx, -dy
+        wx, wy = -wx, -wy
     
     # Action F means to move forward by the given value in the direction the
     # ship is currently facing.
     elif line[0] == 'F':
-        x += dx * int(line[1:])
-        y += dy * int(line[1:])
+        x += wx * int(line[1:])
+        y += wy * int(line[1:])
 
     else:
         raise RuntimeError(f'Cannot parse: "{line}"')
@@ -65,6 +65,6 @@ for line_num, line in enumerate(problem_input.split('\n')):
 # Print the final state
 f"""
 pos=`"{(x, y)}"`
-dir=`"{(dx, dy)}"`
+dir=`"{(wx, wy)}"`
 dist=`"{int(math.fabs(x) + math.fabs(y))}"`
 """
